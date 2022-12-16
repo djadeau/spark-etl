@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  minio:
+    container_name: Minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=supersecret
+    image: quay.io/minio/minio:latest
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - /docker/minio:/data
+    restart: unless-stopped
+    networks:
+      - default
+      - external
+  
+  oracledb:
+    container_name: oracledb
+    image: djadeau/oracle-db:21.3.0-xe
+    environment:
+      - ORACLE_PWD=Admin1234
+      - ORACLE_CHARACTERSET=AL32UTF8
+    ports: 
+      - '1521:1521'
+      - '5500:5500'
+    volumes:
+    - /tmp/ora/oradata:/opt/oracle/oradata
+    - /tmp/ora/scripts/setup:/opt/oracle/scripts/setup
+    - /tmp/ora/scripts/startup:/opt/oracle/scripts/startup
+
+  spark-master:
+    image: djadeau/spark:3.3.1-drivers
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+    volumes:
+       - /tmp/spark/master/apps:/opt/spark-apps
+       - /tmp/spark/master/data:/opt/spark-data
+    environment:
+      - SPARK_LOCAL_IP=spark-master
+      - SPARK_WORKLOAD=master
+  spark-worker-a:
+    image: djadeau/spark:3.3.1-drivers
+    ports:
+      - "9091:8080"
+      - "7000:7000"
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-a
+    volumes:
+       - /tmp/spark/wa/apps:/opt/spark-apps
+       - /tmp/spark/wa/data:/opt/spark-data
+  spark-worker-b:
+    image: djadeau/spark:3.3.1-drivers
+    ports:
+      - "9092:8080"
+      - "7001:7000"
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-b
+    volumes:
+        - /tmp/spark/wb/apps:/opt/spark-apps
+        - /tmp/spark/wb/data:/opt/spark-data
+
+networks:
+  kafka-net:
+    ipam:
+      config:
+        - subnet: 172.180.0.0/16
+  default:
+    driver: bridge
+    internal: true
+    driver_opts:
+      com.docker.network.driver.mtu: 1450
+  external:
+    driver: bridge
+    internal: false
