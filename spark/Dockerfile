@@ -2,11 +2,15 @@ FROM ubuntu:22.04 as builder
 
 RUN apt-get update && \
     apt-get install -y curl openjdk-17-jre wget apt-utils
-         
+
+
+ARG KEYSTORE_PASSWORD
+
 ENV SPARK_VERSION=3.3.1
 ENV HADOOP_VERSION=3
 ENV SPARK_HOME=/opt/spark
 ENV PYTHONHASHSEED=1 
+ENV KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD}
 
 RUN wget --no-verbose -O apache-spark.tgz "https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz" \
 && mkdir -p ${SPARK_HOME} \
@@ -15,6 +19,11 @@ RUN wget --no-verbose -O apache-spark.tgz "https://archive.apache.org/dist/spark
 && wget --no-verbose https://download.oracle.com/otn-pub/otn_software/jdbc/219/ojdbc11.jar --directory-prefix=/opt/spark/jars/ \
 && wget --no-verbose https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.1/hadoop-aws-3.3.1.jar --directory-prefix=/opt/spark/jars/ \
 && wget --no-verbose https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.901/aws-java-sdk-bundle-1.11.901.jar --directory-prefix=/opt/spark/jars/
+
+COPY ca.crt /tmp
+
+RUN keytool -import -cacerts -trustcacerts -alias ca -noprompt -file /tmp/ca.crt -storepass ${KEYSTORE_PASSWORD} \
+&& rm -f /tmp/ca.crt
 
 FROM builder as apache-spark
 
