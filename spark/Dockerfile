@@ -6,7 +6,7 @@ RUN apt-get update && \
 
 ARG KEYSTORE_PASSWORD
 
-ENV SPARK_VERSION=3.3.1
+ENV SPARK_VERSION=3.3.2
 ENV HADOOP_VERSION=3
 ENV SPARK_HOME=/opt/spark
 ENV PYTHONHASHSEED=1 
@@ -17,7 +17,7 @@ RUN wget --no-verbose -O apache-spark.tgz "https://archive.apache.org/dist/spark
 && tar -xf apache-spark.tgz -C ${SPARK_HOME} --strip-components=1 \
 && rm apache-spark.tgz \
 && wget --no-verbose https://download.oracle.com/otn-pub/otn_software/jdbc/219/ojdbc11.jar --directory-prefix=/opt/spark/jars/ \
-&& wget --no-verbose https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.1/hadoop-aws-3.3.1.jar --directory-prefix=/opt/spark/jars/ \
+&& wget --no-verbose https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/${SPARK_VERSION}/hadoop-aws-${SPARK_VERSION}.jar --directory-prefix=/opt/spark/jars/ \
 && wget --no-verbose https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.901/aws-java-sdk-bundle-1.11.901.jar --directory-prefix=/opt/spark/jars/
 
 COPY ca.crt /tmp
